@@ -100,16 +100,19 @@ USAGE
         args = parser.parse_args()
 
         path = args.path
-        verbose = (args.verbose or 0) # NoneType if no -v specified
         delta = (args.delta or 0)
+        
+        global verbose
+        verbose = (args.verbose or 0) # NoneType if no -v specified
+        
 
         if 0 < verbose:
-            print("Verbose mode on")
+            print("Verbosity level:", verbose)
             print("Path:", path)
             print("Delta:", delta, "hour(s)")
 
         
-        return shift(path, delta, verbose)
+        return shift(path, delta)
         
     except KeyboardInterrupt:
         ### handle keyboard interrupt ###
@@ -123,49 +126,56 @@ USAGE
 #        sys.stderr.write(indent + "  for help use --help")
 #        return 2
 
-def shift(path, delta, verbose):
+def readEvents(file):
+    '''Creates Event objects from input'''
+    
     events = []
     
+    beginPattern = re.compile("BEGIN:VEVENT")
+    endPattern = re.compile("END:VEVENT")
+    
+    eventLines = []
+    insideEvent = False
+        
+    for line in file:
+        # Searching for and found a BEGIN? Start adding
+        if not insideEvent and re.match(beginPattern, line):
+            insideEvent = True
+            if 2 < verbose:
+                print("found event BEGINning")
+            continue
+        
+        # Found an END while adding lines?
+        # Create event and stop adding lines until the next BEGIN 
+        if insideEvent and re.match(endPattern, line):
+            if 2 < verbose:
+                print("found END of event:", len(eventLines), "lines of content")
+            events.append(Event(eventLines))
+            insideEvent = False
+            eventLines.clear()
+            continue
+        
+        # Just inside an event? Add line
+        if insideEvent:
+            eventLines.append(line)
+            if 3 < verbose:
+                print("read:", line)
+        elif 3 < verbose:
+            print("ignore:", line)
+            
+    if 1 < verbose:
+        print(len(events), "events found")
+
+    return events
+
+                
+def shift(path, delta):
     try:
-        beginPattern = re.compile("BEGIN:VEVENT")
-        endPattern = re.compile("END:VEVENT")
-        
-        eventLines = []
-        insideEvent = False
-        
-        for line in open(path):
-            # Searching for and found a BEGIN? Start adding
-            if not insideEvent and re.match(beginPattern, line):
-                insideEvent = True
-                if 2 < verbose:
-                    print("found event BEGINning")
-                continue
-            
-            # Found an END while adding lines?
-            # Create event and stop adding lines until the next BEGIN 
-            if insideEvent and re.match(endPattern, line):
-                if 2 < verbose:
-                    print("found END of event:", len(eventLines), "lines of content")
-                events.append(Event(eventLines))
-                insideEvent = False
-                eventLines.clear()
-                continue
-            
-            # Just inside an event? Add line
-            if insideEvent:
-                eventLines.append(line)
-                if 3 < verbose:
-                    print("read:", line)
-            elif 3 < verbose:
-                print("ignore:", line)
-        
+        events = readEvents(open(path))
     except OSError as e:
         print(e)
         return 1
-    
-    if 1 < verbose:
-        print(len(events), "events found")
-    
+        
     return 0
     
 
