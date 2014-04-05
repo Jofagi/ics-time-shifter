@@ -19,6 +19,7 @@ It defines classes_and_methods
 
 import sys
 import os
+import re
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
@@ -28,7 +29,7 @@ __version__ = 0.1
 __date__ = '2014-03-20'
 __updated__ = '2014-03-20'
 
-DEBUG = 0
+DEBUG = 1
 TESTRUN = 0
 PROFILE = 0
 
@@ -41,6 +42,24 @@ class CLIError(Exception):
         return self.msg
     def __unicode__(self):
         return self.msg
+
+class Event:
+    '''Calendar Event'''
+    
+    def __init__(self, lines):
+        #self._values = {}
+        # todo add lines to value map
+        pass
+        
+    def name(self):
+        return self._values["SUMMARY"]
+    
+    def start(self):
+        return self._values["DTSTART"]
+    
+    def end(self):
+        return self._values["DTEND"]
+    
 
 def main(argv=None): # IGNORE:C0111
     '''Command line options.'''
@@ -89,15 +108,9 @@ USAGE
             print("Path:", path)
             print("Delta:", delta, "hour(s)")
 
-        if os.path.exists(path):
-            if 1 < verbose:
-                print(path,"exists!")
-            shift(path, delta, verbose)
-        else:
-            print(path, "does not exist!")
-            return 1 
-
-        return 0
+        
+        return shift(path, delta, verbose)
+        
     except KeyboardInterrupt:
         ### handle keyboard interrupt ###
         return 0
@@ -111,14 +124,57 @@ USAGE
 #        return 2
 
 def shift(path, delta, verbose):
-    print("todo: implement")
+    events = []
+    
+    try:
+        beginPattern = re.compile("BEGIN:VEVENT")
+        endPattern = re.compile("END:VEVENT")
+        
+        eventLines = []
+        insideEvent = False
+        
+        for line in open(path):
+            # Searching for and found a BEGIN? Start adding
+            if not insideEvent and re.match(beginPattern, line):
+                insideEvent = True
+                if 2 < verbose:
+                    print("found event BEGINning")
+                continue
+            
+            # Found an END while adding lines?
+            # Create event and stop adding lines until the next BEGIN 
+            if insideEvent and re.match(endPattern, line):
+                if 2 < verbose:
+                    print("found END of event:", len(eventLines), "lines of content")
+                events.append(Event(eventLines))
+                insideEvent = False
+                eventLines.clear()
+                continue
+            
+            # Just inside an event? Add line
+            if insideEvent:
+                eventLines.append(line)
+                if 3 < verbose:
+                    print("read:", line)
+            elif 3 < verbose:
+                print("ignore:", line)
+        
+    except OSError as e:
+        print(e)
+        return 1
+    
+    if 1 < verbose:
+        print(len(events), "events found")
+    
+    return 0
     
 
 if __name__ == "__main__":
     if DEBUG:
-        sys.argv.append("-h")
-        sys.argv.append("-v")
-        sys.argv.append("-r")
+        #sys.argv.append("-h")
+        sys.argv.append("-vv")
+        sys.argv.append("-d -1")
+        sys.argv.append("sample.ics")
     if TESTRUN:
         import doctest
         doctest.testmod()
