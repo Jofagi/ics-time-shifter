@@ -47,9 +47,19 @@ class Event:
     '''Calendar Event'''
     
     def __init__(self, lines):
-        #self._values = {}
-        # todo add lines to value map
-        pass
+        
+        separator = re.compile(":")
+        self._values = {}
+        
+        for l in lines:
+            kv = re.split(separator, l, maxsplit=1)
+            if len(kv) == 2:
+                self._values[kv[0]] = kv[1]
+                if 3 < verbose:
+                    print(kv[0],"=", kv[1])
+            elif 0 < verbose:
+                print("line not in key:value format:", l)
+                        
         
     def name(self):
         return self._values["SUMMARY"]
@@ -172,6 +182,7 @@ def readEvents(file):
 def shift(path, delta):
     try:
         events = readEvents(open(path))
+                    
     except OSError as e:
         print(e)
         return 1
@@ -182,7 +193,7 @@ def shift(path, delta):
 if __name__ == "__main__":
     if DEBUG:
         #sys.argv.append("-h")
-        sys.argv.append("-vv")
+        sys.argv.append("-vvvv")
         sys.argv.append("-d -1")
         sys.argv.append("sample.ics")
     if TESTRUN:
