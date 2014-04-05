@@ -28,7 +28,7 @@ __version__ = 0.1
 __date__ = '2014-03-20'
 __updated__ = '2014-03-20'
 
-DEBUG = 1
+DEBUG = 0
 TESTRUN = 0
 PROFILE = 0
 
@@ -72,46 +72,47 @@ USAGE
     try:
         # Setup argument parser
         parser = ArgumentParser(description=program_license, formatter_class=RawDescriptionHelpFormatter)
-        parser.add_argument("-r", "--recursive", dest="recurse", action="store_true", help="recurse into subfolders [default: %(default)s]")
         parser.add_argument("-v", "--verbose", dest="verbose", action="count", help="set verbosity level [default: %(default)s]")
-        parser.add_argument("-i", "--include", dest="include", help="only include paths matching this regex pattern. Note: exclude is given preference over include. [default: %(default)s]", metavar="RE" )
-        parser.add_argument("-e", "--exclude", dest="exclude", help="exclude paths matching this regex pattern. [default: %(default)s]", metavar="RE" )
         parser.add_argument('-V', '--version', action='version', version=program_version_message)
-        parser.add_argument(dest="paths", help="paths to folder(s) with source file(s) [default: %(default)s]", metavar="path", nargs='+')
+        parser.add_argument(dest="path", help="file path [default: %(default)s]", metavar="path")
+        parser.add_argument("-d", "--delta", dest="delta", help="hours to shift by", required=True, type=int)
 
         # Process arguments
         args = parser.parse_args()
 
-        paths = args.paths
-        verbose = args.verbose
-        recurse = args.recurse
-        inpat = args.include
-        expat = args.exclude
+        path = args.path
+        verbose = (args.verbose or 0) # NoneType if no -v specified
+        delta = (args.delta or 0)
 
-        if verbose > 0:
+        if 0 < verbose:
             print("Verbose mode on")
-            if recurse:
-                print("Recursive mode on")
-            else:
-                print("Recursive mode off")
+            print("Path:", path)
+            print("Delta:", delta, "hour(s)")
 
-        if inpat and expat and inpat == expat:
-            raise CLIError("include and exclude pattern are equal! Nothing will be processed.")
+        if os.path.exists(path):
+            if 1 < verbose:
+                print(path,"exists!")
+            shift(path, delta, verbose)
+        else:
+            print(path, "does not exist!")
+            return 1 
 
-        for inpath in paths:
-            ### do something with inpath ###
-            print(inpath)
         return 0
     except KeyboardInterrupt:
         ### handle keyboard interrupt ###
         return 0
-    except Exception as e:
-        if DEBUG or TESTRUN:
-            raise(e)
-        indent = len(program_name) * " "
-        sys.stderr.write(program_name + ": " + repr(e) + "\n")
-        sys.stderr.write(indent + "  for help use --help")
-        return 2
+# This prevents pydev from printing a traceback
+#    except Exception as e:
+#        if DEBUG or TESTRUN:
+#            raise(e)
+#        indent = len(program_name) * " "
+#        sys.stderr.write(program_name + ": " + repr(e) + "\n")
+#        sys.stderr.write(indent + "  for help use --help")
+#        return 2
+
+def shift(path, delta, verbose):
+    print("todo: implement")
+    
 
 if __name__ == "__main__":
     if DEBUG:
