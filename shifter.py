@@ -20,6 +20,8 @@ It defines classes_and_methods
 import sys
 import os
 import re
+import datetime
+import copy
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
@@ -82,11 +84,48 @@ class Event (IcsData):
     def name(self):
         return self._values["SUMMARY"]
     
-    def start(self):
-        return self._values["DTSTART"]
+    def _start(self, newValue = ""):
+        '''Reads or writes start time'''
+        
+        if 0 < len(newValue):
+            self._values["DTSTART"] = newValue
+        else:
+            return self._values["DTSTART"]
     
-    def end(self):
-        return self._values["DTEND"]
+    def _end(self, newValue = ""):
+        ''' Reads or writes end time'''
+        
+        if 0 < len(newValue):
+            self._values["DTEND"] = newValue
+        else:
+            return self._values["DTEND"]
+    
+    def applyDelta(self, delta):
+        '''Applies delta hours to start and end timestamps'''
+        
+        # todo: add support for other formats
+        utcTimeFormat = "%Y%m%dT%H%M%SZ"
+        
+        try:
+            oldStart = datetime.datetime.strptime(self._start(), utcTimeFormat)
+            self._start((oldStart + delta).str())
+            oldEnd = datetime.datetime.strptime(self._end(), utcTimeFormat)
+            self._end((oldEnd + delta).str())
+            
+            if veryVerbose():
+                print("Start:", oldStart, "->", self._start())
+                print("End:", oldEnd, "->", self._end())
+            
+        except KeyError as e:
+            print("Event has no such key:", e);
+            if verbose():
+                print(self.content())
+
+        except ValueError as e:
+            print("Date/Time conversion error:", e)
+            if verbose():
+                print(self.content())
+
         
 
 def main(argv=None): # IGNORE:C0111
@@ -171,6 +210,8 @@ def readItems(file):
     
     for line in file:        
         
+        line = line.rstrip("\r\n")
+        
         if not insideEvent and re.match(eventBegin, line):
             insideEvent = True
             
@@ -206,22 +247,20 @@ def readItems(file):
 
     return items
 
-def applyDelta(items, delta):
+def applyDelta(items, deltaHours):
     shiftedItems = []
-    
+
+    delta = datetime.timedelta(hours = deltaHours)
+
     for i in items:
         try:
-            startTime = i.start()
-            endTime = i.end()
-            
+            s = copy.deepcopy(i);
+            s.applyDelta(delta)
+            shiftedItems.append(s)
+                       
         except AttributeError:
             pass # Item is not an event object - this is normal
-        except KeyError as e:
-            # It's and event but has no such key - this is bad
-            print("Event has no such key:", e);
-            if verbose():
-                print(i.content());
-    
+               
     return shiftedItems
  
                 
