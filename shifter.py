@@ -33,6 +33,14 @@ DEBUG = 1
 TESTRUN = 0
 PROFILE = 0
 
+
+def verbose():
+    return 0 < verbosityLevel
+def veryVerbose():
+    return 1 < verbosityLevel
+def extremelyVerbose():
+    return 2 < verbosityLevel
+
 class CLIError(Exception):
     '''Generic exception to raise and log different fatal errors.'''
     def __init__(self, msg):
@@ -43,9 +51,8 @@ class CLIError(Exception):
     def __unicode__(self):
         return self.msg
 
-class Event:
-    '''Calendar Event'''
-    
+class IcsData:
+    '''Generic list of keys and values''' 
     def __init__(self, lines):
         
         separator = re.compile(":")
@@ -55,11 +62,19 @@ class Event:
             kv = re.split(separator, l, maxsplit=1)
             if len(kv) == 2:
                 self._values[kv[0]] = kv[1]
-                if 3 < verbose:
+                if extremelyVerbose():
                     print(kv[0],"=", kv[1])
             elif 0 < verbose:
                 print("line not in key:value format:", l)
-                        
+
+    def content(self):
+        lines = []
+        for k, v in self._values.items():
+            lines.append(k + ":" + v)
+            
+
+class Event (IcsData):
+    '''Calendar Event'''
         
     def name(self):
         return self._values["SUMMARY"]
@@ -112,12 +127,12 @@ USAGE
         path = args.path
         delta = (args.delta or 0)
         
-        global verbose
-        verbose = (args.verbose or 0) # NoneType if no -v specified
+        global verbosityLevel
+        verbosityLevel = (args.verbose or 0) # NoneType if no -v specified
         
 
-        if 0 < verbose:
-            print("Verbosity level:", verbose)
+        if verbose():
+            print("Verbosity level:", verbosityLevel)
             print("Path:", path)
             print("Delta:", delta, "hour(s)")
 
@@ -139,44 +154,53 @@ USAGE
 def readEvents(file):
     '''Creates Event objects from input'''
     
-    events = []
+    items = [] # stores events and other items
+    eventCount = 0
     
-    beginPattern = re.compile("BEGIN:VEVENT")
-    endPattern = re.compile("END:VEVENT")
+    eventBegin = re.compile("BEGIN:VEVENT")
+    eventEnd = re.compile("END:VEVENT")
     
-    eventLines = []
+    itemLines = []
     insideEvent = False
+    
+    # Everything that's not an event is just treated as some generic data.
+    # This is necessary for writing the "unimportant" data to the output file.      
+    
+    for line in file:        
         
-    for line in file:
-        # Searching for and found a BEGIN? Start adding
-        if not insideEvent and re.match(beginPattern, line):
+        if not insideEvent and re.match(eventBegin, line):
             insideEvent = True
-            if 2 < verbose:
-                print("found event BEGINning")
-            continue
-        
-        # Found an END while adding lines?
-        # Create event and stop adding lines until the next BEGIN 
-        if insideEvent and re.match(endPattern, line):
-            if 2 < verbose:
-                print("found END of event:", len(eventLines), "lines of content")
-            events.append(Event(eventLines))
-            insideEvent = False
-            eventLines.clear()
-            continue
-        
-        # Just inside an event? Add line
-        if insideEvent:
-            eventLines.append(line)
-            if 3 < verbose:
-                print("read:", line)
-        elif 3 < verbose:
-            print("ignore:", line)
             
-    if 1 < verbose:
-        print(len(events), "events found")
+            # treat collected lines as generic data item 
+            if 0 < len(itemLines):
+                items.append(IcsData(itemLines))
+                itemLines.clear()
 
-    return events
+            itemLines.append(line) # BEGIN line is part of event
+        
+        elif insideEvent and re.match(eventEnd, line):
+            insideEvent = False
+            
+            # treat collected lines as event item
+            itemLines.append(line) # END line is part of event
+            items.append(Event(itemLines))
+            eventCount = eventCount + 1
+            
+            if extremelyVerbose():
+                print("found END of event:", len(itemLines), "lines of content")
+            
+            itemLines.clear()
+        
+        else:
+            itemLines.append(line) # Just collect line for current item
+            
+
+    if verbose():
+        print("found", eventCount, "events")
+    elif veryVerbose():
+        print("found", len(items), "total items of which", eventCount, "are events")
+
+    return items
 
                 
 def shift(path, delta):
@@ -193,7 +217,7 @@ def shift(path, delta):
 if __name__ == "__main__":
     if DEBUG:
         #sys.argv.append("-h")
-        sys.argv.append("-vvvv")
+        sys.argv.append("-vvv")
         sys.argv.append("-d -1")
         sys.argv.append("sample.ics")
     if TESTRUN:
