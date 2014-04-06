@@ -80,25 +80,23 @@ class IcsData:
 
 class Event (IcsData):
     '''Calendar Event'''
-        
+    
+    _START = "DTSTART"
+    _END = "DTEND"
+    _SUMMARY = "SUMMARY"
+    
     def name(self):
-        return self._values["SUMMARY"]
+        return self._values[self._SUMMARY]
     
+    def _setStart(self, newValue = ""):
+        self._values[self._START] = newValue
     def _start(self, newValue = ""):
-        '''Reads or writes start time'''
-        
-        if 0 < len(newValue):
-            self._values["DTSTART"] = newValue
-        else:
-            return self._values["DTSTART"]
+        return self._values[self._START]
     
-    def _end(self, newValue = ""):
-        ''' Reads or writes end time'''
-        
-        if 0 < len(newValue):
-            self._values["DTEND"] = newValue
-        else:
-            return self._values["DTEND"]
+    def _setEnd(self, newValue = ""):
+        self._values[self._END] = newValue
+    def _end(self):
+        return self._values[self._END]
     
     def applyDelta(self, delta):
         '''Applies delta hours to start and end timestamps'''
@@ -107,14 +105,19 @@ class Event (IcsData):
         utcTimeFormat = "%Y%m%dT%H%M%SZ"
         
         try:
-            oldStart = datetime.datetime.strptime(self._start(), utcTimeFormat)
-            self._start((oldStart + delta).str())
-            oldEnd = datetime.datetime.strptime(self._end(), utcTimeFormat)
-            self._end((oldEnd + delta).str())
+            oldStart = self._start()
+            timestamp = datetime.datetime.strptime(oldStart, utcTimeFormat)
+            self._setStart((timestamp + delta).strftime(utcTimeFormat))
+            
+            oldEnd = self._end()
+            timestamp = datetime.datetime.strptime(oldEnd, utcTimeFormat)
+            self._setEnd((timestamp + delta).strftime(utcTimeFormat))
             
             if veryVerbose():
                 print("Start:", oldStart, "->", self._start())
                 print("End:", oldEnd, "->", self._end())
+                
+            return True
             
         except KeyError as e:
             print("Event has no such key:", e);
@@ -125,6 +128,8 @@ class Event (IcsData):
             print("Date/Time conversion error:", e)
             if verbose():
                 print(self.content())
+    
+        return False
 
         
 
@@ -160,13 +165,18 @@ USAGE
         parser = ArgumentParser(description=program_license, formatter_class=RawDescriptionHelpFormatter)
         parser.add_argument("-v", "--verbose", dest="verbose", action="count", help="set verbosity level [default: %(default)s]")
         parser.add_argument('-V', '--version', action='version', version=program_version_message)
-        parser.add_argument(dest="path", help="file path [default: %(default)s]", metavar="path")
         parser.add_argument("-d", "--delta", dest="delta", help="hours to shift by", required=True, type=int)
+        parser.add_argument(dest="inPath", help="file path [default: %(default)s]", metavar="path")
+        parser.add_argument("-o", "--output", dest="outPath", help="output file", required=True, type=str)
+        parser.add_argument("-f", "--force-overwrite", dest="overwrite", help="overwrite output file if it exists", type=bool)
+        
 
         # Process arguments
         args = parser.parse_args()
 
-        path = args.path
+        inPath = args.inPath
+        outPath = args.outPath
+        overwrite = (args.overwrite or False)
         delta = (args.delta or 0)
         
         global verbosityLevel
@@ -175,11 +185,22 @@ USAGE
 
         if verbose():
             print("Verbosity level:", verbosityLevel)
-            print("Path:", path)
+            print("Input:", inPath)
+            print("Output:", outPath)
+            print("Overwrite output:", overwrite)
             print("Delta:", delta, "hour(s)")
 
+        if os.path.exists(outPath):
+            if overwrite and verbose():
+                print("overwriting existing output file", outPath)
+            elif not overwrite:
+                print("output file exists already!")
+                return 1
         
-        return shift(path, delta)
+        items = readItems(open(inPath))
+        shifted = applyDelta(items, delta)
+        writeItems(shifted, outPath)
+        return 0
         
     except KeyboardInterrupt:
         ### handle keyboard interrupt ###
@@ -255,33 +276,33 @@ def applyDelta(items, deltaHours):
     for i in items:
         try:
             s = copy.deepcopy(i);
-            s.applyDelta(delta)
-            shiftedItems.append(s)
+            if s.applyDelta(delta):
+                shiftedItems.append(s)
+            else:
+                shiftedItems.append(i) # Insert unmodified object
+                
+                if veryVerbose():
+                    print("event not shifted:", i.content())
+                elif verbose():
+                    print("event not shifted")
+
                        
         except AttributeError:
-            pass # Item is not an event object - this is normal
+            pass # Item is not an event object and applyDelta() does not exist - this is normal
                
     return shiftedItems
  
+def writeItems(items, outPath):
+    pass
                 
-def shift(path, delta):
-    try:
-        items = readItems(open(path))
-        items = applyDelta(items, delta)
-                    
-    except OSError as e:
-        print(e)
-        return 1
-        
-    return 0
-    
 
 if __name__ == "__main__":
     if DEBUG:
         #sys.argv.append("-h")
         sys.argv.append("-vvv")
-        sys.argv.append("-d -1")
+        sys.argv.append("-d -12")
         sys.argv.append("sample.ics")
+        sys.argv.append("-o sample_shifted.ics")
     if TESTRUN:
         import doctest
         doctest.testmod()
