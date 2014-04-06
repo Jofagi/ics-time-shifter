@@ -73,6 +73,7 @@ class IcsData:
         lines = []
         for k, v in self._values.items():
             lines.append(k + ":" + v)
+        return lines
             
 
 class Event (IcsData):
@@ -204,10 +205,29 @@ def readItems(file):
 
     return items
 
+def applyDelta(items, delta):
+    shiftedItems = []
+    
+    for i in items:
+        try:
+            startTime = i.start()
+            endTime = i.end()
+            
+        except AttributeError:
+            pass # Item is not an event object - this is normal
+        except KeyError as e:
+            # It's and event but has no such key - this is bad
+            print("Event has no such key:", e);
+            if verbose():
+                print(i.content());
+    
+    return shiftedItems
+ 
                 
 def shift(path, delta):
     try:
         items = readItems(open(path))
+        items = applyDelta(items, delta)
                     
     except OSError as e:
         print(e)
