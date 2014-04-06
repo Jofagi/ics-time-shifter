@@ -198,10 +198,11 @@ def readItems(file):
             itemLines.append(line) # Just collect line for current item
             
 
-    if verbose():
-        print("found", eventCount, "events")
-    elif veryVerbose():
+    if veryVerbose():
         print("found", len(items), "total items of which", eventCount, "are events")
+    elif verbose():
+        print("found", eventCount, "events")
+
 
     return items
 
