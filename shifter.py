@@ -62,8 +62,10 @@ class IcsData:
             kv = re.split(separator, l, maxsplit=1)
             if len(kv) == 2:
                 self._values[kv[0]] = kv[1]
+                
                 if extremelyVerbose():
                     print(kv[0],"=", kv[1])
+                    
             elif 0 < verbose:
                 print("line not in key:value format:", l)
 
@@ -84,7 +86,7 @@ class Event (IcsData):
     
     def end(self):
         return self._values["DTEND"]
-    
+        
 
 def main(argv=None): # IGNORE:C0111
     '''Command line options.'''
@@ -151,7 +153,7 @@ USAGE
 #        sys.stderr.write(indent + "  for help use --help")
 #        return 2
 
-def readEvents(file):
+def readItems(file):
     '''Creates Event objects from input'''
     
     items = [] # stores events and other items
@@ -205,7 +207,7 @@ def readEvents(file):
                 
 def shift(path, delta):
     try:
-        events = readEvents(open(path))
+        items = readItems(open(path))
                     
     except OSError as e:
         print(e)
