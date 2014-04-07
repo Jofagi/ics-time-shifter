@@ -162,13 +162,22 @@ USAGE
 
     try:
         # Setup argument parser
-        parser = ArgumentParser(description=program_license, formatter_class=RawDescriptionHelpFormatter)
-        parser.add_argument("-v", "--verbose", dest="verbose", action="count", help="set verbosity level [default: %(default)s]")
-        parser.add_argument('-V', '--version', action='version', version=program_version_message)
-        parser.add_argument("-d", "--delta", dest="delta", help="hours to shift by", required=True, type=int)
-        parser.add_argument(dest="inPath", help="file path [default: %(default)s]", metavar="path")
-        parser.add_argument("-o", "--output", dest="outPath", help="output file", required=True, type=str)
-        parser.add_argument("-f", "--force-overwrite", dest="overwrite", help="overwrite output file if it exists", type=bool)
+        parser = ArgumentParser(description = program_license,
+                                formatter_class = RawDescriptionHelpFormatter)
+        parser.add_argument("-v", "--verbose", dest = "verbose", 
+                            action = "count", 
+                            help = "set verbosity level [default: %(default)s]")
+        parser.add_argument('-V', '--version', action = 'version', 
+                            version = program_version_message)
+        parser.add_argument("-d", "--delta", dest = "delta", type = int,
+                            help = "hours to shift by", required = True)
+        parser.add_argument(dest = "inPath", metavar = "path", 
+                            help = "file path [default: %(default)s]")
+        parser.add_argument("-o", "--output", dest = "outPath",
+                            help = "output file", required = True, type = str)
+        parser.add_argument("-f", "--force-overwrite", dest = "overwrite", 
+                            help = "overwrite output file if it exists", 
+                            type = bool)
         
 
         # Process arguments
@@ -261,7 +270,8 @@ def readItems(file):
             
 
     if veryVerbose():
-        print("found", len(items), "total items of which", eventCount, "are events")
+        print("found", len(items), "total items of which", eventCount, 
+              "are events")
     elif verbose():
         print("found", eventCount, "events")
 
@@ -288,7 +298,9 @@ def applyDelta(items, deltaHours):
 
                        
         except AttributeError:
-            pass # Item is not an event object and applyDelta() does not exist - this is normal
+            # Item is not an event object and applyDelta() does not exist
+            # -- this is normal
+            pass 
                
     return shiftedItems
  
