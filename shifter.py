@@ -38,9 +38,9 @@ PROFILE = 0
 
 def verbose():
     return 0 < verbosityLevel
-def veryVerbose():
+def very_verbose():
     return 1 < verbosityLevel
-def extremelyVerbose():
+def extremely_verbose():
     return 2 < verbosityLevel
 
 class CLIError(Exception):
@@ -65,7 +65,7 @@ class IcsData:
             if len(kv) == 2:
                 self._values[kv[0]] = kv[1]
                 
-                if extremelyVerbose():
+                if extremely_verbose():
                     print(kv[0],"=", kv[1])
                     
             elif 0 < verbose:
@@ -88,17 +88,17 @@ class Event (IcsData):
     def name(self):
         return self._values[self._SUMMARY]
     
-    def _setStart(self, newValue = ""):
+    def _set_start(self, newValue = ""):
         self._values[self._START] = newValue
     def _start(self, newValue = ""):
         return self._values[self._START]
     
-    def _setEnd(self, newValue = ""):
+    def _set_end(self, newValue = ""):
         self._values[self._END] = newValue
     def _end(self):
         return self._values[self._END]
     
-    def applyDelta(self, delta):
+    def apply_delta(self, delta):
         '''Applies delta hours to start and end timestamps'''
         
         # todo: add support for other formats
@@ -107,13 +107,13 @@ class Event (IcsData):
         try:
             oldStart = self._start()
             timestamp = datetime.datetime.strptime(oldStart, utcTimeFormat)
-            self._setStart((timestamp + delta).strftime(utcTimeFormat))
+            self._set_start((timestamp + delta).strftime(utcTimeFormat))
             
             oldEnd = self._end()
             timestamp = datetime.datetime.strptime(oldEnd, utcTimeFormat)
-            self._setEnd((timestamp + delta).strftime(utcTimeFormat))
+            self._set_end((timestamp + delta).strftime(utcTimeFormat))
             
-            if veryVerbose():
+            if very_verbose():
                 print("Start:", oldStart, "->", self._start())
                 print("End:", oldEnd, "->", self._end())
                 
@@ -206,9 +206,9 @@ USAGE
                 print("output file exists already!")
                 return 1
         
-        items = readItems(open(inPath))
-        shifted = applyDelta(items, delta)
-        writeItems(shifted, outPath)
+        items = read_items(open(inPath))
+        shifted = apply_delta(items, delta)
+        write_items(shifted, outPath)
         return 0
         
     except KeyboardInterrupt:
@@ -223,7 +223,7 @@ USAGE
 #        sys.stderr.write(indent + "  for help use --help")
 #        return 2
 
-def readItems(file):
+def read_items(file):
     '''Creates Event objects from input'''
     
     items = [] # stores events and other items
@@ -260,7 +260,7 @@ def readItems(file):
             items.append(Event(itemLines))
             eventCount = eventCount + 1
             
-            if extremelyVerbose():
+            if extremely_verbose():
                 print("found END of event:", len(itemLines), "lines of content")
             
             itemLines.clear()
@@ -269,7 +269,7 @@ def readItems(file):
             itemLines.append(line) # Just collect line for current item
             
 
-    if veryVerbose():
+    if very_verbose():
         print("found", len(items), "total items of which", eventCount, 
               "are events")
     elif verbose():
@@ -278,7 +278,7 @@ def readItems(file):
 
     return items
 
-def applyDelta(items, deltaHours):
+def apply_delta(items, deltaHours):
     shiftedItems = []
 
     delta = datetime.timedelta(hours = deltaHours)
@@ -286,25 +286,25 @@ def applyDelta(items, deltaHours):
     for i in items:
         try:
             s = copy.deepcopy(i);
-            if s.applyDelta(delta):
+            if s.apply_delta(delta):
                 shiftedItems.append(s)
             else:
                 shiftedItems.append(i) # Insert unmodified object
                 
-                if veryVerbose():
+                if very_verbose():
                     print("event not shifted:", i.content())
                 elif verbose():
                     print("event not shifted")
 
                        
         except AttributeError:
-            # Item is not an event object and applyDelta() does not exist
+            # Item is not an event object and apply_delta() does not exist
             # -- this is normal
             pass 
                
     return shiftedItems
  
-def writeItems(items, outPath):
+def write_items(items, outPath):
     pass
                 
 
