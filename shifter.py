@@ -66,7 +66,7 @@ class IcsData:
                 self._values[kv[0]] = kv[1]
                 
                 if extremely_verbose():
-                    print(kv[0],"=", kv[1])
+                    print(kv[0], "=", kv[1])
                     
             elif 0 < verbose:
                 print("line not in key:value format:", l)
