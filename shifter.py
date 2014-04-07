@@ -246,7 +246,7 @@ def readItems(file):
             insideEvent = True
             
             # treat collected lines as generic data item 
-            if 0 < len(itemLines):
+            if itemLines:
                 items.append(IcsData(itemLines))
                 itemLines.clear()
 
