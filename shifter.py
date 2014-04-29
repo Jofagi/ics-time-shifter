@@ -58,12 +58,12 @@ class IcsData:
     def __init__(self, lines):
         
         separator = re.compile(":")
-        self._values = {}
+        self._values = [] # must be a list so the insert order is not changed
         
         for l in lines:
             kv = re.split(separator, l, maxsplit=1)
             if len(kv) == 2:
-                self._values[kv[0]] = kv[1]
+                self._values.append(kv)
                 
                 if extremely_verbose():
                     print(kv[0], "=", kv[1])
@@ -73,8 +73,8 @@ class IcsData:
 
     def content(self):
         lines = []
-        for k, v in self._values.items():
-            lines.append(k + ":" + v)
+        for entry in self._values:
+            lines.append(entry[0] + ":" + entry[1])
         return lines
             
 
@@ -86,17 +86,30 @@ class Event (IcsData):
     _SUMMARY = "SUMMARY"
     
     def name(self):
-        return self._values[self._SUMMARY]
+        return self._value(self._SUMMARY)
+    
+    def _value(self, needle):
+        for k, v in self._values:
+            if needle == k:
+                return v
+    
+    def _index(self, needle):
+        idx = 0
+        for k, v in self._values:
+            if needle == k:
+                break
+            idx += 1
+        return idx
     
     def _set_start(self, newValue = ""):
-        self._values[self._START] = newValue
-    def _start(self, newValue = ""):
-        return self._values[self._START]
+        self._values[self._index(self._START)] = newValue
+    def _start(self):
+        return self._value(self._START)
     
     def _set_end(self, newValue = ""):
-        self._values[self._END] = newValue
+        self._values[self._index(self._END)] = newValue
     def _end(self):
-        return self._values[self._END]
+        return self._value(self._END)
     
     def apply_delta(self, delta):
         '''Applies delta hours to start and end timestamps'''
@@ -270,7 +283,11 @@ def read_items(file):
         else:
             itemLines.append(line) # Just collect line for current item
             
-
+    if itemLines:
+        items.append(IcsData(itemLines))
+        if extremely_verbose():
+            print("stored", len(itemLines), "lines of non-event data at end")
+                    
     if very_verbose():
         print("found", len(items), "total items of which", eventCount, 
               "are events")
