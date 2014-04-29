@@ -208,7 +208,7 @@ USAGE
         
         items = read_items(open(inPath))
         shifted = apply_delta(items, delta)
-        write_items(shifted, outPath)
+        write_items(shifted, open(outPath, 'w'))
         return 0
         
     except KeyboardInterrupt:
@@ -248,6 +248,8 @@ def read_items(file):
             # treat collected lines as generic data item 
             if itemLines:
                 items.append(IcsData(itemLines))
+                if extremely_verbose():
+                    print("stored", len(itemLines), "lines of non-event data")
                 itemLines.clear()
 
             itemLines.append(line) # BEGIN line is part of event
@@ -300,12 +302,14 @@ def apply_delta(items, deltaHours):
         except AttributeError:
             # Item is not an event object and apply_delta() does not exist
             # -- this is normal
-            pass 
+            shiftedItems.append(i) 
                
     return shiftedItems
  
-def write_items(items, outPath):
-    pass
+def write_items(items, file):
+    for i in items:
+        for line in i.content():
+            file.write(line + '\n')
                 
 
 if __name__ == "__main__":
