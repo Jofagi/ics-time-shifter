@@ -95,19 +95,21 @@ class Event (IcsData):
     
     def _index(self, needle):
         idx = 0
-        for k, v in self._values:
-            if needle == k:
+        for kv in self._values:
+            if needle == kv[0]:
                 break
             idx += 1
         return idx
     
     def _set_start(self, newValue = ""):
-        self._values[self._index(self._START)] = newValue
+        self._values[self._index(self._START)][1] = newValue
+    
     def _start(self):
         return self._value(self._START)
     
     def _set_end(self, newValue = ""):
-        self._values[self._index(self._END)] = newValue
+        self._values[self._index(self._END)][1] = newValue
+        
     def _end(self):
         return self._value(self._END)
     
