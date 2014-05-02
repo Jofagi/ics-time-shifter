@@ -31,7 +31,7 @@ __version__ = 0.1
 __date__ = '2014-03-20'
 __updated__ = '2014-03-20'
 
-DEBUG = 1
+DEBUG = 0
 TESTRUN = 0
 PROFILE = 0
 
