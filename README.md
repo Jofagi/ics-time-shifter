@@ -10,6 +10,7 @@ necessary.
 
 
 USAGE
+-----
 ```
 shifter.py [-h] [-v] [-V] -d DELTA -o OUTPATH [-f OVERWRITE] path
 
@@ -25,19 +26,21 @@ shifter.py [-h] [-v] [-V] -d DELTA -o OUTPATH [-f OVERWRITE] path
                         overwrite output file if it exists
 ```
 
-EXAMPLE
-1. shift events 12 hours backward:
-```
-python shifter -d -12 -o events_earlier.ics events.ics
-``` 
+EXAMPLES
+-------
 
-2. shift events 12 hours forward:
-```
-python shifter -d 12 -o events_later.ics events.ics
-```
+1. shift events 12 hours backward:
+    ```
+    python shifter -d -12 -o events_earlier.ics events.ics
+    ``` 
+1. shift events 12 hours forward:
+    ```
+    python shifter -d 12 -o events_later.ics events.ics
+    ```
 
 
 COPYRIGHT
+---------
   Created by Jofagi on 2014-03-20.
   Copyright 2014 Jofagi. All rights reserved.
 
