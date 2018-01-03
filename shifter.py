@@ -46,7 +46,7 @@ def extremely_verbose():
 
 
 class CLIError(Exception):
-    '''Generic exception to raise and log different fatal errors.'''
+    """Generic exception to raise and log different fatal errors."""
 
     def __init__(self, msg):
         super(CLIError).__init__(type(self))
@@ -108,14 +108,14 @@ class Event(IcsData):
             idx += 1
         return idx
 
-    def _set_start(self, newValue=""):
-        self._values[self._index(self._START)][1] = newValue
+    def _set_start(self, new_value=""):
+        self._values[self._index(self._START)][1] = new_value
 
     def _start(self):
         return self._value(self._START)
 
-    def _set_end(self, newValue=""):
-        self._values[self._index(self._END)][1] = newValue
+    def _set_end(self, new_value=""):
+        self._values[self._index(self._END)][1] = new_value
 
     def _end(self):
         return self._value(self._END)
@@ -124,25 +124,25 @@ class Event(IcsData):
         """Applies delta hours to start and end timestamps"""
 
         # todo: add support for other formats
-        utcTimeFormat = "%Y%m%dT%H%M%SZ"
+        utc_time_format = "%Y%m%dT%H%M%SZ"
 
         try:
-            oldStart = self._start()
-            timestamp = datetime.datetime.strptime(oldStart, utcTimeFormat)
-            self._set_start((timestamp + delta).strftime(utcTimeFormat))
+            old_start = self._start()
+            timestamp = datetime.datetime.strptime(old_start, utc_time_format)
+            self._set_start((timestamp + delta).strftime(utc_time_format))
 
-            oldEnd = self._end()
-            timestamp = datetime.datetime.strptime(oldEnd, utcTimeFormat)
-            self._set_end((timestamp + delta).strftime(utcTimeFormat))
+            old_end = self._end()
+            timestamp = datetime.datetime.strptime(old_end, utc_time_format)
+            self._set_end((timestamp + delta).strftime(utc_time_format))
 
             if very_verbose():
-                print("Start:", oldStart, "->", self._start())
-                print("End:", oldEnd, "->", self._end())
+                print("Start:", old_start, "->", self._start())
+                print("End:", old_end, "->", self._end())
 
             return True
 
         except KeyError as e:
-            print("Event has no such key:", e);
+            print("Event has no such key:", e)
             if verbose():
                 print(self.content())
 
@@ -154,15 +154,7 @@ class Event(IcsData):
         return False
 
 
-def main(argv=None):  # IGNORE:C0111
-    """Command line options."""
-
-    if argv is None:
-        argv = sys.argv
-    else:
-        sys.argv.extend(argv)
-
-    program_name = os.path.basename(sys.argv[0])
+def main():
     program_version = "v%s" % __version__
     program_build_date = str(__updated__)
     program_version_message = '%%(prog)s %s (%s)' % (program_version, program_build_date)
@@ -203,8 +195,8 @@ USAGE
         # Process arguments
         args = parser.parse_args()
 
-        inPath = args.inPath
-        outPath = args.outPath
+        in_path = args.inPath
+        out_path = args.outPath
         overwrite = (args.overwrite or False)
         delta = (args.delta or 0)
 
@@ -213,48 +205,39 @@ USAGE
 
         if verbose():
             print("Verbosity level:", verbosityLevel)
-            print("Input:", inPath)
-            print("Output:", outPath)
+            print("Input:", in_path)
+            print("Output:", out_path)
             print("Overwrite output:", overwrite)
             print("Delta:", delta, "hour(s)")
 
-        if os.path.exists(outPath):
+        if os.path.exists(out_path):
             if overwrite and verbose():
-                print("overwriting existing output file", outPath)
+                print("overwriting existing output file", out_path)
             elif not overwrite:
                 print("output file exists already!")
                 return 1
 
-        items = read_items(open(inPath))
+        items = read_items(open(in_path))
         shifted = apply_delta(items, delta)
-        write_items(shifted, open(outPath, 'w'))
+        write_items(shifted, open(out_path, 'w'))
         return 0
 
     except KeyboardInterrupt:
-        ### handle keyboard interrupt ###
+        # handle keyboard interrupt #
         return 0
 
-
-# This prevents pydev from printing a traceback
-#    except Exception as e:
-#        if DEBUG or TESTRUN:
-#            raise(e)
-#        indent = len(program_name) * " "
-#        sys.stderr.write(program_name + ": " + repr(e) + "\n")
-#        sys.stderr.write(indent + "  for help use --help")
-#        return 2
 
 def read_items(file):
     """Creates Event objects from input"""
 
     items = []  # stores events and other items
-    eventCount = 0
+    event_count = 0
 
-    eventBegin = re.compile("BEGIN:VEVENT")
-    eventEnd = re.compile("END:VEVENT")
+    event_begin = re.compile("BEGIN:VEVENT")
+    event_end = re.compile("END:VEVENT")
 
-    itemLines = []
-    insideEvent = False
+    item_lines = []
+    inside_event = False
 
     # Everything that's not an event is just treated as some generic data.
     # This is necessary for writing the "unimportant" data to the output file.      
@@ -263,73 +246,72 @@ def read_items(file):
 
         line = line.rstrip("\r\n")
 
-        if not insideEvent and re.match(eventBegin, line):
-            insideEvent = True
+        if not inside_event and re.match(event_begin, line):
+            inside_event = True
 
             # treat collected lines as generic data item 
-            if itemLines:
-                items.append(IcsData(itemLines))
+            if item_lines:
+                items.append(IcsData(item_lines))
                 if extremely_verbose():
-                    print("stored", len(itemLines), "lines of non-event data")
-                itemLines.clear()
+                    print("stored", len(item_lines), "lines of non-event data")
+                item_lines.clear()
 
-            itemLines.append(line)  # BEGIN line is part of event
+            item_lines.append(line)  # BEGIN line is part of event
 
-        elif insideEvent and re.match(eventEnd, line):
-            insideEvent = False
+        elif inside_event and re.match(event_end, line):
+            inside_event = False
 
             # treat collected lines as event item
-            itemLines.append(line)  # END line is part of event
-            items.append(Event(itemLines))
-            eventCount = eventCount + 1
+            item_lines.append(line)  # END line is part of event
+            items.append(Event(item_lines))
+            event_count = event_count + 1
 
             if extremely_verbose():
-                print("found END of event:", len(itemLines), "lines of content")
+                print("found END of event:", len(item_lines), "lines of content")
 
-            itemLines.clear()
+            item_lines.clear()
 
         else:
-            itemLines.append(line)  # Just collect line for current item
+            item_lines.append(line)  # Just collect line for current item
 
-    if itemLines:
-        items.append(IcsData(itemLines))
+    if item_lines:
+        items.append(IcsData(item_lines))
         if extremely_verbose():
-            print("stored", len(itemLines), "lines of non-event data at end")
+            print("stored", len(item_lines), "lines of non-event data at end")
 
     if very_verbose():
-        print("found", len(items), "total items of which", eventCount,
+        print("found", len(items), "total items of which", event_count,
               "are events")
     elif verbose():
-        print("found", eventCount, "events")
+        print("found", event_count, "events")
 
     return items
 
 
-def apply_delta(items, deltaHours):
-    shiftedItems = []
+def apply_delta(items, delta_hours):
+    shifted_items = []
 
-    delta = datetime.timedelta(hours=deltaHours)
+    delta = datetime.timedelta(hours=delta_hours)
 
     for i in items:
         try:
-            s = copy.deepcopy(i);
+            s = copy.deepcopy(i)
             if s.apply_delta(delta):
-                shiftedItems.append(s)
+                shifted_items.append(s)
             else:
-                shiftedItems.append(i)  # Insert unmodified object
+                shifted_items.append(i)  # Insert unmodified object
 
                 if very_verbose():
                     print("event not shifted:", i.content())
                 elif verbose():
                     print("event not shifted")
 
-
         except AttributeError:
             # Item is not an event object and apply_delta() does not exist
             # -- this is normal
-            shiftedItems.append(i)
+            shifted_items.append(i)
 
-    return shiftedItems
+    return shifted_items
 
 
 def write_items(items, file):
