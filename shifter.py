@@ -7,7 +7,7 @@ shifter is a utilty for shifting the time of events in an iCalendar ICS file
 
 @author:     Jofagi
 
-@copyright:  2014 Jofagi. All rights reserved.
+@copyright:  2017 Jofagi. All rights reserved.
 
 @license:    MIT
 
@@ -84,7 +84,7 @@ def main():
     program_license = '''%s
 
   Created by Jofagi on %s.
-  Copyright 2014 Jofagi. All rights reserved.
+  Copyright 2017 Jofagi. All rights reserved.
 
   Licensed under the MIT License
   http://opensource.org/licenses/MIT
