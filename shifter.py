@@ -16,7 +16,7 @@ shifter is a utilty for shifting the time of events in an iCalendar ICS file
 
 import sys
 import os
-import datetime
+from datetime import datetime, timedelta, time, date
 from icalendar import Calendar, vDatetime
 
 from argparse import ArgumentParser
@@ -42,6 +42,38 @@ def extremely_verbose():
 
 def col_print(key: str, value: str):
     print("{0:15}: {1}".format(key, value))
+
+
+def apply_shift(start: datetime, end: datetime, delta: timedelta or None, abs_start: int or None) -> (
+        datetime, datetime):
+
+    if delta:
+        pass  # nothing to be done
+
+    elif abs_start:
+        # delta must be calculated
+        same_day_start = start.replace(hour=abs(abs_start), minute=0, second=0, microsecond=0)
+        is_start_before_same_day_start = (start - same_day_start).total_seconds() <= 0
+        shift_earlier = abs_start < 0
+
+        if shift_earlier:
+            if is_start_before_same_day_start:
+                prev_day_start = same_day_start - timedelta(days=1)
+                delta = prev_day_start - start
+            else:
+                delta = same_day_start - start
+
+        else:  # shift to later point in time
+            if is_start_before_same_day_start:
+                delta = same_day_start - start
+            else:
+                next_day_start = same_day_start + timedelta(days=1)
+                delta = start - next_day_start
+
+    else:
+        return None  # should not happen
+
+    return start + delta, end + delta
 
 
 def main():
@@ -73,18 +105,29 @@ USAGE
         parser.add_argument('-V', '--version', action='version',
                             version=program_version_message)
         parser.add_argument("-d", "--delta", dest="delta", type=int,
-                            help="hours to shift by", required=True)
-        parser.add_argument(dest="inPath", metavar="path",
+                            help="hours to shift by; -1=1h earlier, 1h=1h later")
+        parser.add_argument("-s", "--starttime", dest="abs_start", type=int,
+                            help="hour of day to shift to: -18: shifts an event from 20:00 to 18:00 of same day; 18 "
+                                 "shifts an event from 20:00 to 18:00 of next day")
+        parser.add_argument(dest="in_path", metavar="path",
                             help="file path [default: %(default)s]")
-        parser.add_argument("-o", "--output", dest="outPath",
+        parser.add_argument("-o", "--output", dest="out_path",
                             help="output file", required=True, type=str)
 
         # Process arguments
         args = parser.parse_args()
 
-        in_path = args.inPath
-        out_path = args.outPath
-        delta = datetime.timedelta(hours=args.delta or 0)
+        in_path = args.in_path
+        out_path = args.out_path
+        delta = datetime.timedelta(hours=args.delta) if args.delta else None
+        abs_start = args.abs_start
+
+        if not delta and not abs_start:
+            print("Error: Either delta or starttime must be specified.")
+            return 1
+        elif delta and abs_start:
+            print("Error: delta and starttime cannot both be specified at the same time.")
+            return 1
 
         global verbosityLevel
         verbosityLevel = (args.verbose or 0)  # NoneType if no -v specified
@@ -93,7 +136,10 @@ USAGE
             print("Verbosity Level:", verbosityLevel)
             print("Input:", in_path)
             print("Output:", out_path)
-            print("Delta:", delta.seconds / 3600, " hour(s)")
+            if delta:
+                print("Delta:", delta.total_seconds() / 3600, " hour(s)")
+            if abs_start:
+                print("Start time: {0}:00".format(abs_start))
 
         if os.path.exists(out_path):
             if verbose():
@@ -118,8 +164,7 @@ USAGE
                         col_print("original start", start)
                         col_print("original end", end)
 
-                    shifted_start = start + delta
-                    shifted_end = end + delta
+                    shifted_start, shifted_end = apply_shift(start, end, delta, abs_start)
 
                     if very_verbose():
                         col_print("new start", shifted_start)
